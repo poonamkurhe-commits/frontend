@@ -21,15 +21,29 @@ function App() {
         <div className="app">
           <Navbar />
           <Toaster
-            position="top-right"
+            position="top-center"
             toastOptions={{
-              duration: 3000,
+              duration: 4000,
               style: {
-                background: '#fff',
-                color: '#1a1a2e',
+                fontFamily: 'Inter, sans-serif',
                 borderRadius: '12px',
-                padding: '16px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+                padding: '16px 24px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+                fontWeight: 'bold'
+              },
+              success: {
+                duration: 4000,
+                style: {
+                  background: '#10b981',
+                  color: '#fff',
+                },
+              },
+              error: {
+                duration: 4000,
+                style: {
+                  background: '#ff6b6b',
+                  color: '#fff',
+                },
               }
             }}
           />

@@ -41,15 +41,6 @@ export const AuthProvider = ({ children }) => {
         return user
     }
 
-    const register = async (userData) => {
-        const response = await api.post('/auth/register', userData)
-        const { access_token, user } = response.data
-        localStorage.setItem('token', access_token)
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
-        setUser(user)
-        return user
-    }
-
     const logout = () => {
         localStorage.removeItem('token')
         delete api.defaults.headers.common['Authorization']
@@ -60,7 +51,6 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
-        register,
         logout,
         isAuthenticated: !!user
     }
