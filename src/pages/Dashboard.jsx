@@ -6,410 +6,498 @@ import toast from 'react-hot-toast'
 
 const Dashboard = () => {
   const { user } = useAuth()
+  const [subjects, setSubjects] = useState([])
   const [stats, setStats] = useState(null)
-  const [recentResults, setRecentResults] = useState([])
+  const [progress, setProgress] = useState({})
   const [loading, setLoading] = useState(true)
 
-  const subjects = [
-    { name: 'C Programming', icon: '⚙️', color: '#4facfe', progress: 0 },
-    { name: 'C++', icon: '🔄', color: '#f093fb', progress: 0 },
-    { name: 'Java', icon: '☕', color: '#f5576c', progress: 0 },
-    { name: 'Python', icon: '🐍', color: '#43e97b', progress: 0 },
-    { name: 'HTML/CSS', icon: '🌐', color: '#fa709a', progress: 0 },
-    { name: 'DBMS', icon: '🗄️', color: '#f6d365', progress: 0 },
-    { name: 'Operating System', icon: '🖥️', color: '#a18cd1', progress: 0 },
-    { name: 'Software Engineering', icon: '📱', color: '#fbc2eb', progress: 0 }
-  ]
-
   useEffect(() => {
-    fetchDashboardData()
+    fetchData()
   }, [])
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     try {
-      // Fetch user stats
-      const statsResponse = await api.get('/results/stats')
-      setStats(statsResponse.data)
+      setLoading(true)
+      console.log('🚀 Fetching dashboard data...')
 
-      // Fetch recent results
-      const resultsResponse = await api.get('/results/history?limit=5')
-      setRecentResults(resultsResponse.data)
+      // 1. Get subjects
+      const subjectsRes = await api.get('/subjects')
+      console.log('📚 Subjects:', subjectsRes.data)
+      setSubjects(subjectsRes.data || [])
 
-      // Update subject progress
-      if (statsResponse.data?.subjects) {
-        subjects.forEach(subject => {
-          const found = statsResponse.data.subjects.find(s =>
-            s.name.toLowerCase() === subject.name.toLowerCase()
-          )
-          if (found) {
-            subject.progress = found.average_score || 0
-          }
-        })
+      // 2. Get stats
+      const statsRes = await api.get('/results/stats')
+      console.log('📊 Stats:', statsRes.data)
+      setStats(statsRes.data)
+
+      // 3. Get progress
+      try {
+        const progressRes = await api.get('/results/progress/all')
+        console.log('📈 Progress:', progressRes.data)
+        setProgress(progressRes.data || {})
+      } catch (e) {
+        console.error('❌ Progress error:', e)
+        setProgress({})
       }
 
     } catch (error) {
+      console.error('❌ Error fetching data:', error)
       toast.error('Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
   }
 
-  const getGreeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Good Morning'
-    if (hour < 17) return 'Good Afternoon'
-    return 'Good Evening'
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#0a0a1a'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid rgba(255,255,255,0.1)',
+          borderTop: '3px solid #667eea',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
   }
 
+  const getMasteryCount = () => {
+    let count = 0
+    subjects.forEach(s => {
+      const val = progress[s.name] || 0
+      if (val >= 80) count++
+    })
+    return count
+  }
+
+  const getInProgressCount = () => {
+    let count = 0
+    subjects.forEach(s => {
+      const val = progress[s.name] || 0
+      if (val > 0 && val < 80) count++
+    })
+    return count
+  }
+
+  const getNotStartedCount = () => {
+    let count = 0
+    subjects.forEach(s => {
+      const val = progress[s.name] || 0
+      if (val === 0) count++
+    })
+    return count
+  }
+
+  const mastered = getMasteryCount()
+  const inProgress = getInProgressCount()
+  const notStarted = getNotStartedCount()
+  const totalAttempts = stats?.total_attempts || 0
+  const avgScore = stats?.average_score || 0
+  const bestScore = stats?.best_score || 0
+
   return (
-    <div className="dashboard">
+    <div style={{
+      padding: '30px 0',
+      minHeight: 'calc(100vh - 72px)',
+      background: '#0a0a1a'
+    }}>
       <div className="container">
-        <div className="dashboard-header fade-in">
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '30px',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
           <div>
-            <h1>{getGreeting()}, {user?.full_name || user?.username}! 👋</h1>
-            <p>Here's your learning progress and statistics</p>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>
+              Welcome back, {user?.full_name || user?.username}! 👋
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Here's your learning progress at a glance
+            </p>
           </div>
-          <div className="header-stats">
-            <div className="stat-badge">
-              <span className="stat-icon">📊</span>
-              <span>{stats?.total_attempts || 0} Attempts</span>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              color: 'rgba(255,255,255,0.6)',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}>
+              📅 Today
+            </button>
+            <button style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              color: 'rgba(255,255,255,0.6)',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}>
+              ⬇ Export
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px',
+          marginBottom: '30px'
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '24px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.03)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Total Subjects</span>
+              <span style={{ fontSize: '1.2rem' }}>📚</span>
             </div>
-            <div className="stat-badge">
-              <span className="stat-icon">⭐</span>
-              <span>{stats?.average_score || 0}% Avg Score</span>
+            <div style={{ fontSize: '2.5rem', fontWeight: 700, color: '#667eea' }}>
+              {subjects.length}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.85rem' }}>
+              +0 this week
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '24px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.03)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Mastered</span>
+              <span style={{ fontSize: '1.2rem' }}>🏆</span>
+            </div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 700, color: '#43e97b' }}>
+              {mastered}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.85rem' }}>
+              80%+ score
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '24px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.03)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>In Progress</span>
+              <span style={{ fontSize: '1.2rem' }}>📈</span>
+            </div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 700, color: '#f6d365' }}>
+              {inProgress}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.85rem' }}>
+              0-80% score
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '24px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.03)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Not Started</span>
+              <span style={{ fontSize: '1.2rem' }}>⏳</span>
+            </div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 700, color: '#f5576c' }}>
+              {notStarted}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.85rem' }}>
+              0% score
             </div>
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="stats-grid fade-in">
-          <div className="stat-card">
-            <div className="stat-card-icon">📝</div>
-            <div className="stat-card-info">
-              <h3>{stats?.total_attempts || 0}</h3>
-              <p>Total Attempts</p>
+        {/* Subject Progress + Quick Stats */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '2fr 1fr',
+          gap: '20px',
+          marginBottom: '30px'
+        }}>
+          {/* Subject Progress List - NOT CLICKABLE */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '24px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.03)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>📊 Subject Progress</h3>
+              <Link to="/subjects" style={{ color: '#667eea', textDecoration: 'none', fontSize: '0.85rem' }}>
+                View All →
+              </Link>
             </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card-icon">🎯</div>
-            <div className="stat-card-info">
-              <h3>{stats?.average_score || 0}%</h3>
-              <p>Average Score</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card-icon">🏆</div>
-            <div className="stat-card-info">
-              <h3>{stats?.best_score || 0}</h3>
-              <p>Best Score</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card-icon">📚</div>
-            <div className="stat-card-info">
-              <h3>{stats?.subjects?.length || 0}</h3>
-              <p>Subjects Practiced</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Subjects Grid with Progress */}
-        <h2 className="section-title">Your Subjects</h2>
-        <div className="subjects-grid">
-          {subjects.map((subject, idx) => (
-            <Link
-              key={subject.name}
-              to={`/subject/${subject.name.toLowerCase()}`}
-              className="subject-card fade-in"
-              style={{ animationDelay: `${idx * 0.05}s` }}
-            >
-              <div className="subject-header">
-                <div className="subject-icon" style={{ background: subject.color }}>
-                  {subject.icon}
-                </div>
-                <span className="subject-progress">{Math.round(subject.progress)}%</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {subjects.map((s, i) => {
+                const progressVal = progress[s.name] || 0
+                return (
+                  // ✅ REMOVED Link - Now display only
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      cursor: 'default' // Not clickable
+                    }}
+                  >
+                    <div style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '8px',
+                      background: s.color || '#667eea',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.9rem'
+                    }}>
+                      {s.icon || '📚'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.9rem'
+                      }}>
+                        <span>{s.name}</span>
+                        <span style={{
+                          color: progressVal >= 80 ? '#43e97b' :
+                            progressVal > 0 ? '#f6d365' : 'rgba(255,255,255,0.3)'
+                        }}>
+                          {progressVal}%
+                        </span>
+                      </div>
+                      <div style={{
+                        width: '100%',
+                        height: '4px',
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        marginTop: '4px'
+                      }}>
+                        <div style={{
+                          width: `${progressVal}%`,
+                          height: '100%',
+                          background: progressVal >= 80 ? '#43e97b' :
+                            s.color || '#667eea',
+                          borderRadius: '10px',
+                          transition: 'width 0.8s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '24px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.03)'
+          }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>📌 Quick Stats</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px'
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Total Attempts</span>
+                <span style={{ fontWeight: 600 }}>{totalAttempts}</span>
               </div>
-              <h3>{subject.name}</h3>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{
-                    width: `${subject.progress}%`,
-                    background: subject.color
-                  }}
-                />
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px'
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Average Score</span>
+                <span style={{ fontWeight: 600, color: '#43e97b' }}>{avgScore}%</span>
               </div>
-              <span className="practice-text">Start Practice →</span>
-            </Link>
-          ))}
-        </div>
-
-        {/* Recent Results */}
-        {recentResults.length > 0 && (
-          <div className="recent-results">
-            <h2 className="section-title">Recent Activity</h2>
-            <div className="results-list">
-              {recentResults.map((result, idx) => (
-                <div key={result.id} className="result-item fade-in">
-                  <div className="result-item-left">
-                    <span className="result-subject">{result.subject}</span>
-                    <span className="result-type">{result.type}</span>
-                  </div>
-                  <div className="result-item-center">
-                    <span className="result-score">
-                      {result.score}/{result.total}
-                    </span>
-                    <span className="result-percentage">
-                      {result.percentage}%
-                    </span>
-                  </div>
-                  <div className="result-item-right">
-                    <span className="result-date">
-                      {new Date(result.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px'
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Best Score</span>
+                <span style={{ fontWeight: 600, color: '#f6d365' }}>{bestScore}</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px'
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Subjects Mastered</span>
+                <span style={{ fontWeight: 600, color: '#43e97b' }}>{mastered}</span>
+              </div>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Quick Actions */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '16px'
+        }}>
+          <Link to="/subjects" style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.03)',
+            textDecoration: 'none',
+            color: 'white',
+            textAlign: 'center',
+            transition: 'all 0.3s'
+          }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-3px)'
+              e.target.style.borderColor = 'rgba(102,126,234,0.3)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.borderColor = 'rgba(255,255,255,0.03)'
+            }}>
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📚</div>
+            <div style={{ fontWeight: 600 }}>All Subjects</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>View all subjects</div>
+          </Link>
+
+          <Link to="/subjects" style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.03)',
+            textDecoration: 'none',
+            color: 'white',
+            textAlign: 'center',
+            transition: 'all 0.3s'
+          }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-3px)'
+              e.target.style.borderColor = 'rgba(102,126,234,0.3)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.borderColor = 'rgba(255,255,255,0.03)'
+            }}>
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📝</div>
+            <div style={{ fontWeight: 600 }}>Practice MCQ</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Start a new quiz</div>
+          </Link>
+
+          <Link to="/subjects" style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.03)',
+            textDecoration: 'none',
+            color: 'white',
+            textAlign: 'center',
+            transition: 'all 0.3s'
+          }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-3px)'
+              e.target.style.borderColor = 'rgba(102,126,234,0.3)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.borderColor = 'rgba(255,255,255,0.03)'
+            }}>
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>💻</div>
+            <div style={{ fontWeight: 600 }}>Coding Challenge</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Solve problems</div>
+          </Link>
+
+          <Link to="/subjects" style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.03)',
+            textDecoration: 'none',
+            color: 'white',
+            textAlign: 'center',
+            transition: 'all 0.3s'
+          }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-3px)'
+              e.target.style.borderColor = 'rgba(102,126,234,0.3)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.borderColor = 'rgba(255,255,255,0.03)'
+            }}>
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎤</div>
+            <div style={{ fontWeight: 600 }}>Viva Practice</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Oral preparation</div>
+          </Link>
+        </div>
       </div>
-
-      <style jsx>{`
-        .dashboard {
-          padding: 30px 0 60px;
-          min-height: calc(100vh - 80px);
-        }
-        .container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 20px;
-        }
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-          flex-wrap: wrap;
-          gap: 15px;
-        }
-        .dashboard-header h1 {
-          color: white;
-          font-size: 2.2rem;
-          margin-bottom: 5px;
-        }
-        .dashboard-header p {
-          color: rgba(255,255,255,0.9);
-          font-size: 1.05rem;
-        }
-        .header-stats {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .stat-badge {
-          background: rgba(255,255,255,0.2);
-          backdrop-filter: blur(10px);
-          padding: 10px 18px;
-          border-radius: 12px;
-          color: white;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 500;
-        }
-        .stat-icon {
-          font-size: 1.2rem;
-        }
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 20px;
-          margin-bottom: 40px;
-        }
-        .stat-card {
-          background: rgba(255,255,255,0.15);
-          backdrop-filter: blur(10px);
-          padding: 20px;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          color: white;
-          transition: transform 0.3s;
-        }
-        .stat-card:hover {
-          transform: translateY(-3px);
-        }
-        .stat-card-icon {
-          font-size: 2.2rem;
-        }
-        .stat-card-info h3 {
-          font-size: 1.8rem;
-          font-weight: 700;
-          margin-bottom: 2px;
-        }
-        .stat-card-info p {
-          opacity: 0.8;
-          font-size: 0.9rem;
-        }
-        .section-title {
-          color: white;
-          font-size: 1.5rem;
-          margin-bottom: 20px;
-        }
-        .subjects-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 20px;
-          margin-bottom: 40px;
-        }
-        .subject-card {
-          background: rgba(255,255,255,0.1);
-          backdrop-filter: blur(10px);
-          padding: 20px;
-          border-radius: 16px;
-          color: white;
-          text-decoration: none;
-          transition: all 0.3s;
-        }
-        .subject-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .subject-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-        .subject-icon {
-          width: 50px;
-          height: 50px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.8rem;
-        }
-        .subject-progress {
-          font-weight: 700;
-          font-size: 1.1rem;
-        }
-        .subject-card h3 {
-          margin-bottom: 12px;
-          font-size: 1.05rem;
-        }
-        .progress-bar {
-          width: 100%;
-          height: 6px;
-          background: rgba(255,255,255,0.2);
-          border-radius: 3px;
-          overflow: hidden;
-          margin-bottom: 10px;
-        }
-        .progress-fill {
-          height: 100%;
-          border-radius: 3px;
-          transition: width 1s ease;
-        }
-        .practice-text {
-          font-size: 0.9rem;
-          opacity: 0.7;
-          transition: opacity 0.3s;
-        }
-        .subject-card:hover .practice-text {
-          opacity: 1;
-        }
-        .recent-results {
-          margin-top: 10px;
-        }
-        .results-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .result-item {
-          background: rgba(255,255,255,0.1);
-          backdrop-filter: blur(10px);
-          padding: 15px 20px;
-          border-radius: 12px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: white;
-          transition: transform 0.3s;
-        }
-        .result-item:hover {
-          transform: translateX(5px);
-        }
-        .result-item-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .result-subject {
-          font-weight: 600;
-        }
-        .result-type {
-          background: rgba(255,255,255,0.2);
-          padding: 2px 10px;
-          border-radius: 12px;
-          font-size: 0.8rem;
-          text-transform: uppercase;
-        }
-        .result-item-center {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-        .result-score {
-          font-weight: 700;
-          font-size: 1.1rem;
-        }
-        .result-percentage {
-          background: rgba(16, 185, 129, 0.3);
-          padding: 2px 10px;
-          border-radius: 12px;
-          font-size: 0.9rem;
-        }
-        .result-date {
-          font-size: 0.85rem;
-          opacity: 0.7;
-        }
-        @media (max-width: 768px) {
-          .dashboard-header h1 {
-            font-size: 1.7rem;
-          }
-          .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .subjects-grid {
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-          }
-          .result-item {
-            flex-wrap: wrap;
-            gap: 10px;
-          }
-        }
-        @media (max-width: 480px) {
-          .stats-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-          .subjects-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-        }
-        .fade-in {
-          animation: fadeIn 0.6s ease forwards;
-          opacity: 0;
-        }
-        @keyframes fadeIn {
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   )
 }

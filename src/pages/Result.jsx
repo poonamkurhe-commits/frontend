@@ -1,218 +1,198 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const Result = () => {
-    const location = useLocation()
-    const navigate = useNavigate()
-    const results = location.state?.results
+  const location = useLocation()
+  const navigate = useNavigate()
+  const results = location.state?.results
 
-    if (!results) {
-        navigate('/dashboard')
-        return null
-    }
+  if (!results) {
+    navigate('/dashboard')
+    return null
+  }
 
-    const { subject, question_type, score, total_questions, correct_answers, time_spent } = results
-    const percentage = Math.round((score / total_questions) * 100)
+  const { subject, question_type, score, total_questions, correct_answers, time_spent, percentage } = results
+  const finalPercentage = percentage || Math.round((score / total_questions) * 100)
 
-    const getResultEmoji = () => {
-        if (percentage >= 80) return '🏆'
-        if (percentage >= 60) return '🌟'
-        if (percentage >= 40) return '💪'
-        return '📚'
-    }
+  const getEmoji = () => {
+    if (finalPercentage >= 80) return '🏆'
+    if (finalPercentage >= 60) return '🌟'
+    if (finalPercentage >= 40) return '💪'
+    return '📚'
+  }
 
-    const getResultMessage = () => {
-        if (percentage >= 80) return 'Excellent work! You\'ve mastered this topic!'
-        if (percentage >= 60) return 'Good job! Keep practicing to improve further.'
-        if (percentage >= 40) return 'You\'re on the right track. Review the topics you missed.'
-        return 'Don\'t give up! Practice more and try again.'
-    }
+  const getMessage = () => {
+    if (finalPercentage >= 80) return 'Excellent! You\'ve mastered this topic! 🎉'
+    if (finalPercentage >= 60) return 'Good job! Keep practicing to improve further! 💪'
+    if (finalPercentage >= 40) return 'You\'re on the right track. Review the topics you missed! 📖'
+    return 'Don\'t give up! Practice more and try again! 🌟'
+  }
 
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60)
-        const secs = seconds % 60
-        return `${mins}m ${secs}s`
-    }
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+  }
 
-    return (
-        <div className="result-page">
-            <div className="container">
-                <div className="result-card fade-in">
-                    <div className="result-emoji">{getResultEmoji()}</div>
-                    <h1 className="result-title">Quiz Complete!</h1>
-                    <p className="result-subtitle">{getResultMessage()}</p>
+  return (
+    <div style={{
+      minHeight: 'calc(100vh - 72px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#0a0a1a',
+      padding: '20px'
+    }}>
+      <div style={{
+        maxWidth: '500px',
+        width: '100%',
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '24px',
+        padding: '40px',
+        border: '1px solid rgba(255,255,255,0.03)',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '4rem', marginBottom: '10px' }}>{getEmoji()}</div>
 
-                    <div className="result-stats">
-                        <div className="stat-item">
-                            <span className="stat-label">Subject</span>
-                            <span className="stat-value">{subject}</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Mode</span>
-                            <span className="stat-value">{question_type.toUpperCase()}</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Score</span>
-                            <span className="stat-value highlight">{score}/{total_questions}</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Percentage</span>
-                            <span className="stat-value highlight">{percentage}%</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Correct</span>
-                            <span className="stat-value">{correct_answers}</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Time Taken</span>
-                            <span className="stat-value">{formatTime(time_spent)}</span>
-                        </div>
-                    </div>
+        <h1 style={{ color: 'white', fontSize: '2rem', marginBottom: '5px' }}>Quiz Complete! 🎯</h1>
+        <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '30px' }}>{getMessage()}</p>
 
-                    <div className="result-progress">
-                        <div className="progress-bar">
-                            <div
-                                className="progress-fill"
-                                style={{
-                                    width: `${percentage}%`,
-                                    background: percentage >= 80 ? '#10b981' :
-                                        percentage >= 60 ? '#f59e0b' : '#ef4444'
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="result-actions">
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => navigate(`/subject/${subject}`)}
-                        >
-                            Practice Again
-                        </button>
-                        <button
-                            className="btn btn-secondary"
-                            onClick={() => navigate('/dashboard')}
-                        >
-                            Go to Dashboard
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <style jsx>{`
-        .result-page {
-          min-height: calc(100vh - 80px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 40px 0;
-        }
-        .result-card {
-          background: white;
-          border-radius: 24px;
-          padding: 50px;
-          max-width: 600px;
-          width: 100%;
-          text-align: center;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-        }
-        .result-emoji {
-          font-size: 4rem;
-          margin-bottom: 15px;
-        }
-        .result-title {
-          font-size: 2.5rem;
-          color: #1a1a2e;
-          margin-bottom: 5px;
-        }
-        .result-subtitle {
-          color: #666;
-          font-size: 1.1rem;
-          margin-bottom: 30px;
-        }
-        .result-stats {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-          margin-bottom: 25px;
-        }
-        .stat-item {
-          background: #f8f9ff;
-          padding: 15px;
-          border-radius: 12px;
-        }
-        .stat-label {
-          display: block;
-          font-size: 0.85rem;
-          color: #888;
-          margin-bottom: 5px;
-        }
-        .stat-value {
-          font-size: 1.3rem;
-          font-weight: 600;
-          color: #1a1a2e;
-        }
-        .stat-value.highlight {
-          color: #667eea;
-        }
-        .result-progress {
-          margin: 25px 0 30px;
-        }
-        .progress-bar {
-          width: 100%;
-          height: 10px;
-          background: #f0f0f0;
-          border-radius: 5px;
-          overflow: hidden;
-        }
-        .progress-fill {
-          height: 100%;
-          transition: width 1s ease;
-        }
-        .result-actions {
-          display: flex;
-          gap: 15px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        .btn {
-          padding: 12px 30px;
-          border-radius: 10px;
-          border: none;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-          font-size: 1rem;
-        }
-        .btn-primary {
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          color: white;
-        }
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-        .btn-secondary {
-          background: #f0f0f0;
-          color: #1a1a2e;
-        }
-        .btn-secondary:hover {
-          background: #e0e0e0;
-        }
-        @media (max-width: 768px) {
-          .result-card {
-            padding: 30px 20px;
-            margin: 0 20px;
-          }
-          .result-stats {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .result-title {
-            font-size: 2rem;
-          }
-        }
-      `}</style>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'baseline',
+          gap: '5px',
+          marginBottom: '30px'
+        }}>
+          <span style={{ fontSize: '4rem', fontWeight: 700, color: '#667eea' }}>
+            {score}
+          </span>
+          <span style={{ fontSize: '1.5rem', color: 'rgba(255,255,255,0.3)' }}>
+            / {total_questions}
+          </span>
         </div>
-    )
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '12px',
+          marginBottom: '30px'
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '16px',
+            borderRadius: '12px'
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>Subject</div>
+            <div style={{ color: 'white', fontWeight: 600 }}>{subject}</div>
+          </div>
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '16px',
+            borderRadius: '12px'
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>Mode</div>
+            <div style={{ color: 'white', fontWeight: 600 }}>{question_type?.toUpperCase() || 'MCQ'}</div>
+          </div>
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '16px',
+            borderRadius: '12px'
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>Correct</div>
+            <div style={{ color: '#43e97b', fontWeight: 600 }}>{correct_answers || score}</div>
+          </div>
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            padding: '16px',
+            borderRadius: '12px'
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>Time</div>
+            <div style={{ color: '#f6d365', fontWeight: 600 }}>{formatTime(time_spent || 0)}</div>
+          </div>
+        </div>
+
+        <div style={{
+          width: '100%',
+          height: '8px',
+          background: 'rgba(255,255,255,0.05)',
+          borderRadius: '10px',
+          overflow: 'hidden',
+          marginBottom: '30px'
+        }}>
+          <div style={{
+            width: `${finalPercentage}%`,
+            height: '100%',
+            background: finalPercentage >= 80 ? '#43e97b' :
+              finalPercentage >= 60 ? '#f6d365' : '#f5576c',
+            borderRadius: '10px',
+            transition: 'width 1s ease'
+          }} />
+        </div>
+
+        <div style={{
+          fontSize: '1.5rem',
+          fontWeight: 700,
+          color: finalPercentage >= 80 ? '#43e97b' :
+            finalPercentage >= 60 ? '#f6d365' : '#f5576c',
+          marginBottom: '30px'
+        }}>
+          {finalPercentage}%
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          justifyContent: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => navigate(`/subject/${subject.toLowerCase().replace(/ /g, '-')}`)}
+            style={{
+              padding: '12px 30px',
+              borderRadius: '12px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              color: 'white',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)'
+              e.target.style.boxShadow = '0 8px 25px rgba(102,126,234,0.3)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.boxShadow = 'none'
+            }}
+          >
+            🔄 Practice Again
+          </button>
+          <button
+            onClick={() => navigate('/dashboard')}
+            style={{
+              padding: '12px 30px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'transparent',
+              color: 'white',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(255,255,255,0.05)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent'
+            }}
+          >
+            🏠 Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default Result

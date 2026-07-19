@@ -2,41 +2,43 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
-    const { user, loading } = useAuth()
+  const { user, loading } = useAuth()
 
-    if (loading) {
-        return (
-            <div className="loading-spinner">
-                <div className="spinner"></div>
-                <style jsx>{`
-          .loading-spinner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 60vh;
-          }
-          .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
+  console.log('ProtectedRoute - user:', user, 'loading:', loading)
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '60vh',
+        color: 'white'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid rgba(255,255,255,0.1)',
+          borderTop: '3px solid #667eea',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`
           @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
           }
         `}</style>
-            </div>
-        )
-    }
+      </div>
+    )
+  }
 
-    if (!user) {
-        return <Navigate to="/login" replace />
-    }
+  if (!user) {
+    console.log('No user, redirecting to login')
+    return <Navigate to="/login" replace />
+  }
 
-    return children
+  console.log('User authenticated, rendering children')
+  return children
 }
 
 export default ProtectedRoute
